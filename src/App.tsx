@@ -7,6 +7,7 @@ function App() {
   const [title, setTitle] = useState('');
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const editorRef = useRef<EditorRef>(null);
 
   const handleHistoryChange = useCallback((newCanUndo: boolean, newCanRedo: boolean) => {
@@ -25,7 +26,10 @@ function App() {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+      />
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -36,6 +40,8 @@ function App() {
           canRedo={canRedo}
           onUndo={handleUndo}
           onRedo={handleRedo}
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
 
         {/* Editor */}

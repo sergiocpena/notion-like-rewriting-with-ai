@@ -34,11 +34,17 @@ function SidebarItem({ icon, label, active = false }: SidebarItemProps) {
 
 interface SidebarProps {
   workspaceName?: string;
+  collapsed?: boolean;
+  onToggle?: () => void;
 }
 
-export function Sidebar({ workspaceName = "Datagrid" }: SidebarProps) {
+export function Sidebar({ workspaceName = "Datagrid", collapsed = false, onToggle }: SidebarProps) {
   return (
-    <div className="w-[240px] h-screen bg-[rgb(247,247,245)] flex flex-col border-r border-[rgba(0,0,0,0.05)]">
+    <div
+      className={`h-screen bg-[rgb(247,247,245)] flex flex-col border-r border-[rgba(0,0,0,0.05)] transition-all duration-300 ease-in-out overflow-hidden ${
+        collapsed ? 'w-0 border-r-0' : 'w-[240px]'
+      }`}
+    >
       {/* Workspace header */}
       <div className="flex items-center justify-between px-3 py-2 hover:bg-[rgba(0,0,0,0.03)] cursor-pointer">
         <div className="flex items-center gap-2">
@@ -54,7 +60,13 @@ export function Sidebar({ workspaceName = "Datagrid" }: SidebarProps) {
           <button className="p-1 hover:bg-[rgba(0,0,0,0.05)] rounded">
             <SquarePen size={16} className="text-[rgba(55,53,47,0.65)]" />
           </button>
-          <button className="p-1 hover:bg-[rgba(0,0,0,0.05)] rounded">
+          <button
+            className="p-1 hover:bg-[rgba(0,0,0,0.05)] rounded"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle?.();
+            }}
+          >
             <PanelLeft size={16} className="text-[rgba(55,53,47,0.65)]" />
           </button>
         </div>

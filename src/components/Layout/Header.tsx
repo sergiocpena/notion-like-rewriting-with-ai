@@ -7,6 +7,7 @@ import {
   Undo2,
   Redo2,
   History,
+  PanelLeft,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -15,6 +16,8 @@ interface HeaderProps {
   canRedo?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
+  sidebarCollapsed?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 export function Header({
@@ -23,11 +26,22 @@ export function Header({
   canRedo = false,
   onUndo,
   onRedo,
+  sidebarCollapsed = false,
+  onToggleSidebar,
 }: HeaderProps) {
   return (
     <div className="h-11 flex items-center justify-between border-b border-[rgba(0,0,0,0.05)] bg-white">
       {/* Left section - Navigation and breadcrumb */}
       <div className="flex items-center">
+        {/* Sidebar toggle button - shows when sidebar is collapsed */}
+        {sidebarCollapsed && (
+          <button
+            onClick={onToggleSidebar}
+            className="p-1.5 ml-2 hover:bg-[rgba(0,0,0,0.05)] rounded text-[rgba(55,53,47,0.65)]"
+          >
+            <PanelLeft size={18} />
+          </button>
+        )}
         {/* Navigation arrows */}
         <div className="flex items-center px-2 gap-0.5">
           <button className="p-1 hover:bg-[rgba(0,0,0,0.05)] rounded text-[rgba(55,53,47,0.45)]">
