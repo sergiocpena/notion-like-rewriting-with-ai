@@ -11,9 +11,9 @@ export function useBlocks(initialBlocks?: Block[]) {
   const initialState = initialBlocks ?? [{ id: generateId(), content: '', type: 'text' }];
   const [blocks, setBlocks] = useState<Block[]>(initialState);
 
-  // History for undo/redo
+  // History for undo/redo - use state for index to trigger re-renders
   const history = useRef<Block[][]>([initialState]);
-  const historyIndex = useRef<number>(0);
+  const [historyIndex, setHistoryIndex] = useState<number>(0);
   const isUndoRedo = useRef<boolean>(false);
 
   const focusBlockId = useRef<string | null>(null);
@@ -27,7 +27,7 @@ export function useBlocks(initialBlocks?: Block[]) {
     }
 
     // Remove any redo history when new changes are made
-    history.current = history.current.slice(0, historyIndex.current + 1);
+    history.current = history.current.slice(0, historyIndex + 1);
 
     // Add new state
     history.current.push(JSON.parse(JSON.stringify(newBlocks)));
@@ -37,29 +37,31 @@ export function useBlocks(initialBlocks?: Block[]) {
       history.current = history.current.slice(-MAX_HISTORY_SIZE);
     }
 
-    historyIndex.current = history.current.length - 1;
-  }, []);
+    setHistoryIndex(history.current.length - 1);
+  }, [historyIndex]);
 
   const undo = useCallback(() => {
-    if (historyIndex.current > 0) {
-      historyIndex.current -= 1;
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
       isUndoRedo.current = true;
-      const previousState = JSON.parse(JSON.stringify(history.current[historyIndex.current]));
+      setHistoryIndex(newIndex);
+      const previousState = JSON.parse(JSON.stringify(history.current[newIndex]));
       setBlocks(previousState);
     }
-  }, []);
+  }, [historyIndex]);
 
   const redo = useCallback(() => {
-    if (historyIndex.current < history.current.length - 1) {
-      historyIndex.current += 1;
+    if (historyIndex < history.current.length - 1) {
+      const newIndex = historyIndex + 1;
       isUndoRedo.current = true;
-      const nextState = JSON.parse(JSON.stringify(history.current[historyIndex.current]));
+      setHistoryIndex(newIndex);
+      const nextState = JSON.parse(JSON.stringify(history.current[newIndex]));
       setBlocks(nextState);
     }
-  }, []);
+  }, [historyIndex]);
 
-  const canUndo = historyIndex.current > 0;
-  const canRedo = historyIndex.current < history.current.length - 1;
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < history.current.length - 1;
 
   const updateBlock = useCallback((id: string, content: string) => {
     setBlocks((prev) => {
