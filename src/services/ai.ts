@@ -70,22 +70,33 @@ export async function rewriteText(
   text: string,
   action: RewriteAction
 ): Promise<string> {
-  const response = await client.messages.create({
-    model: 'claude-opus-4-5-20250514',
-    max_tokens: 1024,
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: 'user',
-        content: buildUserPrompt(text, action),
-      },
-    ],
-  });
+  console.log('[AI Service] rewriteText called with action:', action);
+  console.log('[AI Service] Input text length:', text.length);
 
-  const content = response.content[0];
-  if (content.type === 'text') {
-    return content.text.trim();
+  try {
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: buildUserPrompt(text, action),
+        },
+      ],
+    });
+
+    console.log('[AI Service] Response received:', response);
+
+    const content = response.content[0];
+    if (content.type === 'text') {
+      console.log('[AI Service] Text content:', content.text.substring(0, 100));
+      return content.text.trim();
+    }
+
+    throw new Error('Unexpected response format');
+  } catch (error) {
+    console.error('[AI Service] API error:', error);
+    throw error;
   }
-
-  throw new Error('Unexpected response format');
 }

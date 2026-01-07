@@ -1,9 +1,15 @@
 import { useState, useCallback, useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { Block } from './Block';
 import { SelectionMenu } from './SelectionMenu';
+import { SkeletonOverlay } from './SkeletonOverlay';
 import { useBlocks } from '@/hooks/useBlocks';
 import { rewriteText, type RewriteAction } from '@/services/ai';
 import type { Block as BlockType } from '@/types/editor';
+
+interface SelectionInfo {
+  text: string;
+  rects: DOMRect[];
+  range: Range;
+}
 
 const INITIAL_CONTENT: BlockType[] = [
   {
@@ -42,13 +48,12 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor({ onTit
   const [title, setTitle] = useState('');
   const titleRef = useRef<HTMLDivElement>(null);
   const editorContentRef = useRef<HTMLDivElement>(null);
+  const blocksContainerRef = useRef<HTMLDivElement>(null);
   const {
     blocks,
     updateBlock,
     addBlockAfter,
-    deleteBlock,
     mergeWithPrevious,
-    getBlockIndex,
     getFocusInfo,
     undo,
     redo,
@@ -102,77 +107,6 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor({ onTit
     [blocks]
   );
 
-  const handleEnter = useCallback(
-    (id: string, remainingContent: string) => {
-      addBlockAfter(id, remainingContent);
-    },
-    [addBlockAfter]
-  );
-
-  const handleDelete = useCallback(
-    (id: string) => {
-      const index = getBlockIndex(id);
-      if (index > 0) {
-        setFocusState({
-          blockId: blocks[index - 1].id,
-          cursorPosition: blocks[index - 1].content.length,
-        });
-      } else if (blocks.length > 1) {
-        setFocusState({
-          blockId: blocks[1].id,
-          cursorPosition: 0,
-        });
-      }
-      deleteBlock(id);
-    },
-    [blocks, deleteBlock, getBlockIndex]
-  );
-
-  const handleMergeWithPrevious = useCallback(
-    (id: string) => {
-      const index = getBlockIndex(id);
-      if (index > 0) {
-        const prevBlock = blocks[index - 1];
-        setFocusState({
-          blockId: prevBlock.id,
-          cursorPosition: prevBlock.content.length,
-        });
-      }
-      mergeWithPrevious(id);
-    },
-    [blocks, mergeWithPrevious, getBlockIndex]
-  );
-
-  const handleFocusPrevious = useCallback(
-    (id: string) => {
-      const index = getBlockIndex(id);
-      if (index > 0) {
-        const prevBlock = blocks[index - 1];
-        setFocusState({
-          blockId: prevBlock.id,
-          cursorPosition: prevBlock.content.length,
-        });
-      } else if (index === 0) {
-        // Focus title
-        titleRef.current?.focus();
-      }
-    },
-    [blocks, getBlockIndex]
-  );
-
-  const handleFocusNext = useCallback(
-    (id: string) => {
-      const index = getBlockIndex(id);
-      if (index < blocks.length - 1) {
-        setFocusState({
-          blockId: blocks[index + 1].id,
-          cursorPosition: 0,
-        });
-      }
-    },
-    [blocks, getBlockIndex]
-  );
-
   // Clear focus state after it's been used
   useEffect(() => {
     if (focusState.blockId) {
@@ -183,37 +117,171 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor({ onTit
     }
   }, [focusState]);
 
+  // Handle input in the unified contentEditable
+  const handleBlocksInput = useCallback(() => {
+    if (!blocksContainerRef.current) return;
+
+    const container = blocksContainerRef.current;
+    const blockElements = container.querySelectorAll('[data-block-id]');
+
+    blockElements.forEach((el) => {
+      const blockId = el.getAttribute('data-block-id');
+      const content = el.textContent ?? '';
+      if (blockId) {
+        updateBlock(blockId, content);
+      }
+    });
+  }, [updateBlock]);
+
+  // Handle keyboard events in the unified contentEditable
+  const handleBlocksKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return;
+
+        const range = selection.getRangeAt(0);
+        let currentBlock = range.startContainer as HTMLElement;
+
+        // Find the block element
+        while (currentBlock && !currentBlock.getAttribute?.('data-block-id')) {
+          currentBlock = currentBlock.parentElement as HTMLElement;
+        }
+
+        if (currentBlock) {
+          const blockId = currentBlock.getAttribute('data-block-id');
+          if (blockId) {
+            // Delete any selected text
+            range.deleteContents();
+
+            // Get remaining content after cursor position
+            const remainingRange = document.createRange();
+            remainingRange.selectNodeContents(currentBlock);
+            remainingRange.setStart(range.endContainer, range.endOffset);
+            const afterContent = remainingRange.toString();
+            remainingRange.deleteContents();
+
+            // Update current block and add new one
+            const currentContent = currentBlock.textContent ?? '';
+            updateBlock(blockId, currentContent);
+            addBlockAfter(blockId, afterContent);
+          }
+        }
+      }
+
+      if (e.key === 'Backspace') {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return;
+
+        const range = selection.getRangeAt(0);
+
+        // Check if at start of a block
+        if (range.startOffset === 0 && range.collapsed) {
+          let currentBlock = range.startContainer as HTMLElement;
+          while (currentBlock && !currentBlock.getAttribute?.('data-block-id')) {
+            currentBlock = currentBlock.parentElement as HTMLElement;
+          }
+
+          if (currentBlock) {
+            const blockId = currentBlock.getAttribute('data-block-id');
+            const blockIndex = blocks.findIndex((b) => b.id === blockId);
+
+            if (blockIndex > 0 && blockId) {
+              e.preventDefault();
+              mergeWithPrevious(blockId);
+            }
+          }
+        }
+      }
+    },
+    [blocks, updateBlock, addBlockAfter, mergeWithPrevious]
+  );
+
+  // Sync blocks content to DOM when blocks change externally (undo/redo)
+  useEffect(() => {
+    if (!blocksContainerRef.current) return;
+
+    const container = blocksContainerRef.current;
+    const blockElements = container.querySelectorAll('[data-block-id]');
+
+    blockElements.forEach((el) => {
+      const blockId = el.getAttribute('data-block-id');
+      const block = blocks.find((b) => b.id === blockId);
+      if (block && el.textContent !== block.content) {
+        el.textContent = block.content;
+      }
+    });
+  }, [blocks]);
+
   const [isRewriting, setIsRewriting] = useState(false);
+  const [selectionInfo, setSelectionInfo] = useState<SelectionInfo | null>(null);
+
+  // Get all rects for a selection (handles multi-line and multi-block)
+  const getSelectionRects = useCallback((range: Range): DOMRect[] => {
+    const rects = Array.from(range.getClientRects());
+    // Filter out zero-width rects and deduplicate
+    return rects.filter(rect => rect.width > 0 && rect.height > 0);
+  }, []);
 
   const handleSelectionAction = useCallback(
     async (action: RewriteAction) => {
+      console.log('[AI Improve] Action triggered:', action);
+
       const selection = window.getSelection();
-      if (!selection || selection.isCollapsed || isRewriting) return;
+      if (!selection || selection.isCollapsed || isRewriting) {
+        console.log('[AI Improve] No selection or already rewriting', {
+          hasSelection: !!selection,
+          isCollapsed: selection?.isCollapsed,
+          isRewriting
+        });
+        return;
+      }
 
       const selectedText = selection.toString();
-      if (!selectedText.trim()) return;
+      if (!selectedText.trim()) {
+        console.log('[AI Improve] Selected text is empty');
+        return;
+      }
 
-      // Store the range before async operation
-      const range = selection.getRangeAt(0);
+      console.log('[AI Improve] Selected text:', selectedText.substring(0, 100) + '...');
 
+      // Store the range and get selection rects for skeleton overlay
+      const range = selection.getRangeAt(0).cloneRange();
+      const rects = getSelectionRects(range);
+
+      // Set selection info for skeleton overlay
+      setSelectionInfo({ text: selectedText, rects, range });
       setIsRewriting(true);
 
       try {
+        console.log('[AI Improve] Calling API...');
         const rewrittenText = await rewriteText(selectedText, action);
+        console.log('[AI Improve] API response:', rewrittenText.substring(0, 100) + '...');
 
         // Restore selection and replace text
         selection.removeAllRanges();
         selection.addRange(range);
 
-        // Use insertText to replace selection (works with contentEditable)
-        document.execCommand('insertText', false, rewrittenText);
+        // Use insertText to replace selection (works with contentEditable, including multi-block)
+        const success = document.execCommand('insertText', false, rewrittenText);
+        console.log('[AI Improve] Text replaced:', success);
+
+        // If execCommand failed, try alternative approach
+        if (!success) {
+          console.log('[AI Improve] Trying alternative replacement...');
+          range.deleteContents();
+          range.insertNode(document.createTextNode(rewrittenText));
+        }
       } catch (error) {
-        console.error('Failed to rewrite text:', error);
+        console.error('[AI Improve] Failed to rewrite text:', error);
       } finally {
         setIsRewriting(false);
+        setSelectionInfo(null);
       }
     },
-    [isRewriting]
+    [isRewriting, getSelectionRects]
   );
 
   return (
@@ -225,6 +293,11 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor({ onTit
           onAction={handleSelectionAction}
           isLoading={isRewriting}
         />
+
+        {/* Skeleton Overlay for loading state */}
+        {isRewriting && selectionInfo && (
+          <SkeletonOverlay rects={selectionInfo.rects} />
+        )}
 
         {/* Title */}
         <div className="relative mb-4">
@@ -251,30 +324,34 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor({ onTit
           )}
         </div>
 
-        {/* Content blocks */}
-        <div className="mt-2">
+        {/* Content blocks - using single contentEditable for cross-paragraph selection */}
+        <div
+          className="mt-2 outline-none min-h-[200px] text-[16px] text-[rgb(55,53,47)] leading-[1.5]"
+          contentEditable
+          suppressContentEditableWarning
+          ref={blocksContainerRef}
+          onInput={handleBlocksInput}
+          onKeyDown={handleBlocksKeyDown}
+          style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+        >
           {blocks.map((block, index) => (
-            <Block
+            <div
               key={block.id}
-              id={block.id}
-              content={block.content}
-              placeholder={
-                index === 0 && blocks.length === 1
-                  ? "Write, press 'space' for AI, '/' for commands..."
-                  : ''
-              }
-              isFirst={index === 0}
-              onUpdate={updateBlock}
-              onEnter={handleEnter}
-              onDelete={handleDelete}
-              onMergeWithPrevious={handleMergeWithPrevious}
-              onFocusPrevious={handleFocusPrevious}
-              onFocusNext={handleFocusNext}
-              shouldFocus={focusState.blockId === block.id}
-              focusCursorPosition={focusState.cursorPosition}
-            />
+              data-block-id={block.id}
+              className="py-[3px] min-h-[1.5em]"
+            >
+              {block.content || (index === 0 && blocks.length === 1 ? '' : '')}
+            </div>
           ))}
         </div>
+        {blocks.length === 1 && !blocks[0].content && (
+          <div
+            className="absolute mt-2 py-[3px] text-[16px] leading-[1.5] text-[rgba(55,53,47,0.5)] pointer-events-none select-none"
+            style={{ top: titleRef.current?.offsetHeight ?? 52 }}
+          >
+            Write, press 'space' for AI, '/' for commands...
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,9 +1,6 @@
 import {
   Search,
   Home,
-  Calendar,
-  Sparkles,
-  Inbox,
   ChevronDown,
   PanelLeft,
   SquarePen,
