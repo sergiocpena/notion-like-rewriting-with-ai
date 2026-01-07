@@ -53,6 +53,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor({ onTit
     blocks,
     updateBlock,
     addBlockAfter,
+    deleteBlock,
     mergeWithPrevious,
     getFocusInfo,
     undo,
@@ -225,6 +226,44 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor({ onTit
     return rects.filter(rect => rect.width > 0 && rect.height > 0);
   }, []);
 
+  // Helper to find block element from a node
+  const findBlockElement = useCallback((node: Node | null): HTMLElement | null => {
+    let current = node as HTMLElement | null;
+    while (current && !current.getAttribute?.('data-block-id')) {
+      current = current.parentElement;
+    }
+    return current;
+  }, []);
+
+  // Get block IDs in selection range
+  const getBlocksInRange = useCallback((range: Range): string[] => {
+    const startBlock = findBlockElement(range.startContainer);
+    const endBlock = findBlockElement(range.endContainer);
+
+    if (!startBlock || !endBlock) return [];
+
+    const startId = startBlock.getAttribute('data-block-id');
+    const endId = endBlock.getAttribute('data-block-id');
+
+    if (!startId || !endId) return [];
+
+    // If same block, return just that one
+    if (startId === endId) return [startId];
+
+    // Get all blocks between start and end
+    const blockIds: string[] = [];
+    const startIndex = blocks.findIndex(b => b.id === startId);
+    const endIndex = blocks.findIndex(b => b.id === endId);
+
+    if (startIndex === -1 || endIndex === -1) return [];
+
+    for (let i = startIndex; i <= endIndex; i++) {
+      blockIds.push(blocks[i].id);
+    }
+
+    return blockIds;
+  }, [blocks, findBlockElement]);
+
   const handleSelectionAction = useCallback(
     async (action: RewriteAction) => {
       console.log('[AI Improve] Action triggered:', action);
@@ -251,6 +290,10 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor({ onTit
       const range = selection.getRangeAt(0).cloneRange();
       const rects = getSelectionRects(range);
 
+      // Get which blocks are in the selection BEFORE we make changes
+      const affectedBlockIds = getBlocksInRange(range);
+      console.log('[AI Improve] Affected blocks:', affectedBlockIds);
+
       // Set selection info for skeleton overlay
       setSelectionInfo({ text: selectedText, rects, range });
       setIsRewriting(true);
@@ -260,19 +303,51 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor({ onTit
         const rewrittenText = await rewriteText(selectedText, action);
         console.log('[AI Improve] API response:', rewrittenText.substring(0, 100) + '...');
 
-        // Restore selection and replace text
-        selection.removeAllRanges();
-        selection.addRange(range);
+        // For multi-block selections, we need to handle this differently
+        if (affectedBlockIds.length > 1) {
+          // Get content before selection in first block
+          const firstBlockEl = blocksContainerRef.current?.querySelector(`[data-block-id="${affectedBlockIds[0]}"]`);
+          const lastBlockEl = blocksContainerRef.current?.querySelector(`[data-block-id="${affectedBlockIds[affectedBlockIds.length - 1]}"]`);
 
-        // Use insertText to replace selection (works with contentEditable, including multi-block)
-        const success = document.execCommand('insertText', false, rewrittenText);
-        console.log('[AI Improve] Text replaced:', success);
+          if (firstBlockEl && lastBlockEl) {
+            // Get the text before selection in first block
+            const preRange = document.createRange();
+            preRange.setStart(firstBlockEl, 0);
+            preRange.setEnd(range.startContainer, range.startOffset);
+            const textBefore = preRange.toString();
 
-        // If execCommand failed, try alternative approach
-        if (!success) {
-          console.log('[AI Improve] Trying alternative replacement...');
-          range.deleteContents();
-          range.insertNode(document.createTextNode(rewrittenText));
+            // Get the text after selection in last block
+            const postRange = document.createRange();
+            postRange.setStart(range.endContainer, range.endOffset);
+            postRange.setEndAfter(lastBlockEl.lastChild || lastBlockEl);
+            const textAfter = postRange.toString();
+
+            // Combine: text before + rewritten + text after
+            const newContent = textBefore + rewrittenText + textAfter;
+
+            // Update first block with merged content
+            updateBlock(affectedBlockIds[0], newContent);
+
+            // Remove the other blocks from state (from last to second to avoid index issues)
+            for (let i = affectedBlockIds.length - 1; i > 0; i--) {
+              deleteBlock(affectedBlockIds[i]);
+            }
+          }
+        } else {
+          // Single block - use the standard approach
+          selection.removeAllRanges();
+          selection.addRange(range);
+
+          // Use insertText to replace selection
+          const success = document.execCommand('insertText', false, rewrittenText);
+          console.log('[AI Improve] Text replaced:', success);
+
+          // If execCommand failed, try alternative approach
+          if (!success) {
+            console.log('[AI Improve] Trying alternative replacement...');
+            range.deleteContents();
+            range.insertNode(document.createTextNode(rewrittenText));
+          }
         }
       } catch (error) {
         console.error('[AI Improve] Failed to rewrite text:', error);
@@ -281,7 +356,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor({ onTit
         setSelectionInfo(null);
       }
     },
-    [isRewriting, getSelectionRects]
+    [isRewriting, getSelectionRects, getBlocksInRange, updateBlock, deleteBlock]
   );
 
   return (
