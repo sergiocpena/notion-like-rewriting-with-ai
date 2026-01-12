@@ -6,24 +6,24 @@ const client = new Anthropic({
 });
 
 export type RewriteAction =
-  | 'add-references'
-  | 'simplify-field'
-  | 'contract-ready'
-  | 'tone-owner'
-  | 'tone-sub'
-  | 'tone-architect';
+  | 'add-metrics'
+  | 'simplify'
+  | 'make-actionable'
+  | 'tone-executive'
+  | 'tone-engineering'
+  | 'tone-stakeholder';
 
 const SYSTEM_PROMPT = `<role>
-You are an expert construction documentation specialist with deep knowledge of RFIs, submittals, change orders, and contract administration. Your task is to rewrite construction project text according to specific instructions.
+You are an expert product management documentation specialist with deep knowledge of PRDs, user stories, roadmaps, and stakeholder communication. Your task is to rewrite product documentation according to specific instructions.
 </role>
 
 <context>
-You work with documents like RFIs (Requests for Information), submittals, daily reports, meeting minutes, and contract correspondence in commercial construction projects.
+You work with documents like PRDs (Product Requirements Documents), user stories, feature specifications, roadmaps, release notes, and stakeholder presentations in technology product teams.
 </context>
 
 <guidelines>
-- Maintain technical accuracy and project-specific details
-- Preserve all dates, dimensions, gridlines, elevations, and reference numbers
+- Maintain technical accuracy and product-specific details
+- Preserve all metrics, dates, feature names, and specific requirements
 - Keep the same language as the input
 - Return ONLY the rewritten text with no explanations, preamble, or metadata
 - Do not add quotation marks around the output
@@ -32,28 +32,28 @@ You work with documents like RFIs (Requests for Information), submittals, daily 
 
 function buildUserPrompt(text: string, action: RewriteAction): string {
   const actionInstructions: Record<RewriteAction, string> = {
-    'add-references': `<instruction>
-Enhance this construction text by adding appropriate specification section references (e.g., "per Section 03 30 00"), drawing references (e.g., "see Detail 3/S-201"), and submittal references where relevant. Use standard CSI MasterFormat numbering. Only add references that logically apply to the content.
+    'add-metrics': `<instruction>
+Enhance this product text by adding relevant success metrics, KPIs, and measurable outcomes. Include specific numbers where appropriate (e.g., "increase conversion by 15%", "reduce load time to under 2 seconds"). Add metrics that logically apply to the features or goals mentioned.
 </instruction>`,
 
-    'simplify-field': `<instruction>
-Rewrite this text for field personnel (superintendents, foremen, trade workers). Use plain language, remove contract jargon, focus on actionable information. Keep dimensions and locations but explain technical terms. Make it scannable with clear action items.
+    'simplify': `<instruction>
+Rewrite this text in simpler, more accessible language. Remove technical jargon, use shorter sentences, and focus on the key message. Make it easy to understand for anyone regardless of their technical background. Keep the essential information but present it more clearly.
 </instruction>`,
 
-    'contract-ready': `<instruction>
-Rewrite this text in formal contract language suitable for official project correspondence. Use precise, unambiguous terms. Include conditional language where appropriate (e.g., "shall", "in accordance with"). Reference contract documents. Ensure it could withstand legal scrutiny and clearly establishes responsibilities and timelines.
+    'make-actionable': `<instruction>
+Rewrite this text to be more actionable and results-oriented. Convert passive descriptions into clear action items, add specific next steps, define ownership where possible, and include clear timelines or deadlines. Make it easy to understand what needs to happen and by when.
 </instruction>`,
 
-    'tone-owner': `<instruction>
-Adjust the tone for communication with the Owner/Client. Be professional and respectful, focus on schedule and cost impacts, avoid excessive technical jargon, emphasize solutions over problems, and frame requests in terms of project success and their interests.
+    'tone-executive': `<instruction>
+Adjust the tone for executive leadership communication. Focus on business impact, strategic alignment, and ROI. Use concise language, lead with the most important information, highlight risks and opportunities, and connect features to business outcomes. Avoid technical implementation details.
 </instruction>`,
 
-    'tone-sub': `<instruction>
-Adjust the tone for communication with a Subcontractor. Be direct and action-oriented, clearly state scope responsibilities, reference specific contract/PO terms, set clear deadlines, and focus on coordination requirements and deliverables.
+    'tone-engineering': `<instruction>
+Adjust the tone for the engineering team. Include relevant technical considerations, be specific about requirements and constraints, mention integration points and dependencies, and frame requirements in terms of acceptance criteria. Use precise technical language where appropriate.
 </instruction>`,
 
-    'tone-architect': `<instruction>
-Adjust the tone for communication with the Architect/Engineer of Record. Use appropriate technical terminology, reference specific drawing sheets and details, frame questions to facilitate design clarification, be respectful of design intent while clearly stating constructability concerns.
+    'tone-stakeholder': `<instruction>
+Adjust the tone for external stakeholders (customers, partners, investors). Focus on user benefits and value proposition, use clear and professional language, emphasize competitive advantages, and highlight the positive impact on their goals. Avoid internal jargon and implementation details.
 </instruction>`,
   };
 

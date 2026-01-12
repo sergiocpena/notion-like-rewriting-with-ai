@@ -197,9 +197,9 @@ export function SelectionMenu({ containerRef, onAction, isLoading = false }: Sel
 
             {/* Menu Items */}
             <div className="py-1">
-              {/* Add spec & drawing references */}
+              {/* Add success metrics */}
               <button
-                onClick={() => handleAction('add-references')}
+                onClick={() => handleAction('add-metrics')}
                 className="w-full flex items-center gap-3 px-3 py-[6px] hover:bg-[rgba(55,53,47,0.08)] transition-colors duration-75 text-left"
               >
                 <svg
@@ -207,21 +207,21 @@ export function SelectionMenu({ containerRef, onAction, isLoading = false }: Sel
                   viewBox="0 0 16 16"
                   fill="none"
                 >
-                  {/* Link/chain icon for references */}
+                  {/* Chart/metrics icon */}
                   <path
-                    d="M6.5 9.5l3-3M7 5.5L5.5 7a2.12 2.12 0 000 3l.5.5a2.12 2.12 0 003 0l1.5-1.5M9 10.5l1.5-1.5a2.12 2.12 0 000-3l-.5-.5a2.12 2.12 0 00-3 0L5.5 7"
+                    d="M3 13V8M8 13V5M13 13V3"
                     stroke="currentColor"
                     strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
                 </svg>
-                <span className="text-[14px] text-[rgb(55,53,47)]">Add spec & drawing references</span>
+                <span className="text-[14px] text-[rgb(55,53,47)]">Add success metrics</span>
               </button>
 
-              {/* Simplify for field teams */}
+              {/* Simplify language */}
               <button
-                onClick={() => handleAction('simplify-field')}
+                onClick={() => handleAction('simplify')}
                 className="w-full flex items-center gap-3 px-3 py-[6px] hover:bg-[rgba(55,53,47,0.08)] transition-colors duration-75 text-left"
               >
                 <svg
@@ -229,21 +229,21 @@ export function SelectionMenu({ containerRef, onAction, isLoading = false }: Sel
                   viewBox="0 0 16 16"
                   fill="none"
                 >
-                  {/* Hard hat icon for field teams */}
+                  {/* Simplify/compress icon */}
                   <path
-                    d="M3 10.5h10M4 10.5V9a4 4 0 018 0v1.5M6 6.5V5M10 6.5V5M2.5 12.5h11a.5.5 0 00.5-.5v-1a.5.5 0 00-.5-.5h-11a.5.5 0 00-.5.5v1a.5.5 0 00.5.5z"
+                    d="M3 4h10M3 8h6M3 12h8"
                     stroke="currentColor"
                     strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
                 </svg>
-                <span className="text-[14px] text-[rgb(55,53,47)]">Simplify for field teams</span>
+                <span className="text-[14px] text-[rgb(55,53,47)]">Simplify language</span>
               </button>
 
-              {/* Make contract-ready */}
+              {/* Make actionable */}
               <button
-                onClick={() => handleAction('contract-ready')}
+                onClick={() => handleAction('make-actionable')}
                 className="w-full flex items-center gap-3 px-3 py-[6px] hover:bg-[rgba(55,53,47,0.08)] transition-colors duration-75 text-left"
               >
                 <svg
@@ -251,17 +251,16 @@ export function SelectionMenu({ containerRef, onAction, isLoading = false }: Sel
                   viewBox="0 0 16 16"
                   fill="none"
                 >
-                  {/* Stamp/seal icon for contract */}
-                  <circle cx="8" cy="8" r="5" stroke="currentColor" strokeWidth="1.5" />
+                  {/* Checklist/action icon */}
                   <path
-                    d="M5.5 8l1.5 1.5 3.5-3.5"
+                    d="M3 4l2 2 4-4M3 10l2 2 4-4M11 5h2M11 11h2"
                     stroke="currentColor"
                     strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
                 </svg>
-                <span className="text-[14px] text-[rgb(55,53,47)]">Make contract-ready</span>
+                <span className="text-[14px] text-[rgb(55,53,47)]">Make actionable</span>
               </button>
 
               {/* Adjust tone - with submenu */}
@@ -308,25 +307,25 @@ export function SelectionMenu({ containerRef, onAction, isLoading = false }: Sel
                 {/* Tone Submenu */}
                 {showToneSubmenu && (
                   <div className="absolute left-full top-0 pl-1 z-50">
-                    <div className="bg-white rounded-lg shadow-[0_0_0_1px_rgba(15,15,15,0.05),0_3px_6px_rgba(15,15,15,0.1),0_9px_24px_rgba(15,15,15,0.2)] min-w-[140px]">
+                    <div className="bg-white rounded-lg shadow-[0_0_0_1px_rgba(15,15,15,0.05),0_3px_6px_rgba(15,15,15,0.1),0_9px_24px_rgba(15,15,15,0.2)] min-w-[160px]">
                       <div className="py-1">
                         <button
-                          onClick={() => handleAction('tone-owner')}
+                          onClick={() => handleAction('tone-executive')}
                           className="w-full flex items-center gap-3 px-3 py-[6px] hover:bg-[rgba(55,53,47,0.08)] transition-colors duration-75 text-left"
                         >
-                          <span className="text-[14px] text-[rgb(55,53,47)]">Owner</span>
+                          <span className="text-[14px] text-[rgb(55,53,47)]">Executives</span>
                         </button>
                         <button
-                          onClick={() => handleAction('tone-sub')}
+                          onClick={() => handleAction('tone-engineering')}
                           className="w-full flex items-center gap-3 px-3 py-[6px] hover:bg-[rgba(55,53,47,0.08)] transition-colors duration-75 text-left"
                         >
-                          <span className="text-[14px] text-[rgb(55,53,47)]">Subcontractor</span>
+                          <span className="text-[14px] text-[rgb(55,53,47)]">Engineering Team</span>
                         </button>
                         <button
-                          onClick={() => handleAction('tone-architect')}
+                          onClick={() => handleAction('tone-stakeholder')}
                           className="w-full flex items-center gap-3 px-3 py-[6px] hover:bg-[rgba(55,53,47,0.08)] transition-colors duration-75 text-left"
                         >
-                          <span className="text-[14px] text-[rgb(55,53,47)]">Architect</span>
+                          <span className="text-[14px] text-[rgb(55,53,47)]">Stakeholders</span>
                         </button>
                       </div>
                     </div>

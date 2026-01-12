@@ -15,22 +15,22 @@ const INITIAL_CONTENT: BlockType[] = [
   {
     id: 'block-1',
     type: 'text',
-    content: 'During the review of structural drawings for Building A, we identified a conflict between the steel beam layout on Level 3 and the mechanical ductwork routing shown in the MEP drawings. The W12x26 beam at gridline C-4 appears to intersect with the 24-inch supply duct serving the east wing.',
+    content: 'This document outlines the requirements for the new collaborative document editing feature. Users have expressed a strong need for real-time collaboration capabilities that allow multiple team members to work on the same document simultaneously without conflicts or data loss.',
   },
   {
     id: 'block-2',
     type: 'text',
-    content: 'Please clarify the intended elevation of the bottom of steel at this location and confirm whether the ductwork should be rerouted below the beam or if a penetration through the web is acceptable. The current drawings show the beam at elevation 32\'-6" and the duct centerline at 33\'-0".',
+    content: 'The primary goal is to enable seamless collaboration between distributed teams. Key success metrics include reducing document revision cycles by 40%, increasing team productivity scores, and achieving a user satisfaction rating of 4.5 or higher for the collaboration experience.',
   },
   {
     id: 'block-3',
     type: 'text',
-    content: 'This coordination issue must be resolved before we proceed with steel fabrication, currently scheduled to begin on March 15th. Any delays in response may impact the critical path and push back the concrete deck pour for Level 4.',
+    content: 'Core features must include presence indicators showing who is currently viewing or editing, cursor tracking for real-time visibility, conflict resolution for simultaneous edits, and a comprehensive version history with the ability to restore previous versions.',
   },
   {
     id: 'block-4',
     type: 'text',
-    content: 'We request a response within 5 business days to maintain the project schedule. If a revised structural detail is required, please provide updated shop drawings for review. The mechanical subcontractor is standing by to adjust their routing pending your direction.',
+    content: 'Technical requirements include support for WebSocket connections for low-latency updates, offline editing with automatic sync when reconnected, and end-to-end encryption for enterprise customers. The feature should integrate with our existing authentication and permissions system.',
   },
 ];
 
@@ -49,6 +49,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor({ onTit
   const titleRef = useRef<HTMLDivElement>(null);
   const editorContentRef = useRef<HTMLDivElement>(null);
   const blocksContainerRef = useRef<HTMLDivElement>(null);
+  const skipInputHandling = useRef(false);
   const {
     blocks,
     updateBlock,
@@ -120,6 +121,8 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor({ onTit
 
   // Handle input in the unified contentEditable
   const handleBlocksInput = useCallback(() => {
+    // Skip if we're doing a programmatic update (like AI rewrite)
+    if (skipInputHandling.current) return;
     if (!blocksContainerRef.current) return;
 
     const container = blocksContainerRef.current;
@@ -305,6 +308,9 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor({ onTit
 
         // For multi-block selections, we need to handle this differently
         if (affectedBlockIds.length > 1) {
+          // Skip input handling during programmatic update
+          skipInputHandling.current = true;
+
           // Get content before selection in first block
           const firstBlockEl = blocksContainerRef.current?.querySelector(`[data-block-id="${affectedBlockIds[0]}"]`);
           const lastBlockEl = blocksContainerRef.current?.querySelector(`[data-block-id="${affectedBlockIds[affectedBlockIds.length - 1]}"]`);
@@ -333,6 +339,11 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor({ onTit
               deleteBlock(affectedBlockIds[i]);
             }
           }
+
+          // Re-enable input handling after a short delay to let React re-render
+          setTimeout(() => {
+            skipInputHandling.current = false;
+          }, 100);
         } else {
           // Single block - use the standard approach
           selection.removeAllRanges();
@@ -394,7 +405,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor({ onTit
               className="absolute top-0 left-0 text-[40px] font-bold leading-[1.2] text-[rgba(55,53,47,0.15)] pointer-events-none select-none"
               aria-hidden="true"
             >
-              RFI #3235
+              Product Requirements Document
             </div>
           )}
         </div>

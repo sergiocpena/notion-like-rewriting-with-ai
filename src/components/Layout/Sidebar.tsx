@@ -5,10 +5,10 @@ import {
   PanelLeft,
   SquarePen,
   FileText,
-  HelpCircle,
-  Repeat,
-  Wallet,
-  Receipt,
+  Settings,
+  Trash2,
+  Calendar,
+  Users,
 } from 'lucide-react';
 
 interface SidebarItemProps {
@@ -38,7 +38,7 @@ interface SidebarProps {
   onToggle?: () => void;
 }
 
-export function Sidebar({ workspaceName = "Datagrid", collapsed = false, onToggle }: SidebarProps) {
+export function Sidebar({ workspaceName = "Notion", collapsed = false, onToggle }: SidebarProps) {
   return (
     <div
       className={`h-screen bg-[rgb(247,247,245)] flex flex-col border-r border-[rgba(0,0,0,0.05)] transition-all duration-300 ease-in-out overflow-hidden ${
@@ -76,11 +76,11 @@ export function Sidebar({ workspaceName = "Datagrid", collapsed = false, onToggl
       <div className="flex flex-col px-2 py-1">
         <SidebarItem icon={<Search size={18} />} label="Search" />
         <SidebarItem icon={<Home size={18} />} label="Home" />
-        <SidebarItem icon={<FileText size={18} />} label="Submittals" />
-        <SidebarItem icon={<HelpCircle size={18} />} label="Requests for Information" />
-        <SidebarItem icon={<Repeat size={18} />} label="Change Orders" />
-        <SidebarItem icon={<Wallet size={18} />} label="Payables" />
-        <SidebarItem icon={<Receipt size={18} />} label="Invoices" />
+        <SidebarItem icon={<FileText size={18} />} label="Documents" />
+        <SidebarItem icon={<Calendar size={18} />} label="Calendar" />
+        <SidebarItem icon={<Users size={18} />} label="Team Space" />
+        <SidebarItem icon={<Settings size={18} />} label="Settings" />
+        <SidebarItem icon={<Trash2 size={18} />} label="Trash" />
       </div>
 
       {/* Shared section */}

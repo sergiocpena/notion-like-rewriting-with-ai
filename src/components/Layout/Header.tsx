@@ -21,7 +21,7 @@ interface HeaderProps {
 }
 
 export function Header({
-  pageTitle = 'RFI #3235',
+  pageTitle = 'Product Requirements Document',
   canUndo = false,
   canRedo = false,
   onUndo,

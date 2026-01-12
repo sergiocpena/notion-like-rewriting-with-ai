@@ -35,7 +35,7 @@ function App() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <Header
-          pageTitle={title || 'RFI #3235'}
+          pageTitle={title || 'Product Requirements Document'}
           canUndo={canUndo}
           canRedo={canRedo}
           onUndo={handleUndo}
